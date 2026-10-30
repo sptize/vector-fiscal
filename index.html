@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Mi Vector Fiscal</title>
+  <meta name="theme-color" content="#ffffff">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icon-192.png">
+  <link rel="apple-touch-icon" href="icon-192.png">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header>
+    <h1>Mi Vector Fiscal</h1>
+    <p id="hoy"></p>
+  </header>
+
+  <main id="app"></main>
+
+  <nav id="tabs">
+    <button data-tab="pagos">Pagos</button>
+    <button data-tab="ingresos">10% y 5%</button>
+    <button data-tab="historial">Historial</button>
+    <button data-tab="resumen">Resumen</button>
+    <button data-tab="ajustes">Ajustes</button>
+  </nav>
+
+  <dialog id="dlg"></dialog>
+  <div id="toast" role="status"></div>
+
+  <script src="core.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
