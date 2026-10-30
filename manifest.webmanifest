@@ -1,4 +1,5 @@
 {
+  "id": "vector-fiscal-pwa",
   "name": "Mi Vector Fiscal",
   "short_name": "Vector Fiscal",
   "description": "Pagos a la ONAT con avisos para no pagar recargos por mora.",
