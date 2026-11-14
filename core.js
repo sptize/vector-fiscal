@@ -1,6 +1,8 @@
 'use strict';
 /* Lógica compartida entre la página y el service worker (sin DOM). */
 
+const APP_VERSION = '2.2';
+
 const MESES = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
 
 /* ---------- Almacenamiento (IndexedDB, clave/valor) ---------- */
@@ -52,6 +54,7 @@ function nombreMes(idx, conAnio) {
   return MESES[idxM(idx)] + (conAnio ? ' ' + idxY(idx) : '');
 }
 function etiquetaPeriodo(p, len) {
+  if (len === 3 && idxM(p) % 3 !== 0) len = 1;   // pago suelto de antes: se muestra el mes
   if (len === 1) return nombreMes(p, true);
   return MESES[idxM(p)] + '–' + MESES[idxM(p + len - 1)] + ' ' + idxY(p);
 }
@@ -60,7 +63,7 @@ function etiquetaPeriodo(p, len) {
 function defaultState(now = new Date()) {
   const cur = ymIdx(now.getFullYear(), now.getMonth());
   return {
-    version: 1,
+    version: 2,
     settings: {
       offset: 1,              // se paga 1 mes después del mes al que corresponde
       inicio: ymKey(cur - 1), // desde qué mes se lleva el control
@@ -68,7 +71,7 @@ function defaultState(now = new Date()) {
       baseId: 'i10'           // el pago que ella anota en la pestaña «10% y 5%»
     },
     obligaciones: [
-      { id: 'ss', nombre: 'Seguridad social', codigoRC: '', codigoTributo: '', tipo: 'fijo', monto: 0, porcentaje: 0, exento: 0, frecuencia: 'mensual', diaLimite: 10 },
+      { id: 'ss', nombre: 'Seguridad social', codigoRC: '', codigoTributo: '', tipo: 'fijo', monto: 0, porcentaje: 0, exento: 0, frecuencia: 'trimestral', diaLimite: 10 },
       { id: 'i10', nombre: 'Impuesto 10%', codigoRC: '', codigoTributo: '', tipo: 'porcentaje', monto: 0, porcentaje: 10, exento: 0, frecuencia: 'mensual', diaLimite: 10 },
       { id: 'i5', nombre: 'Impuesto 5%', codigoRC: '', codigoTributo: '', tipo: 'porcentaje', monto: 0, porcentaje: 5, exento: 3260, frecuencia: 'mensual', diaLimite: 10 }
     ],
@@ -107,6 +110,13 @@ function migrarState(st) {
   for (const k of Object.keys(st.ingresos)) {
     const l = ingresosDe(st, k);
     if (l === undefined) delete st.ingresos[k]; else st.ingresos[k] = l;
+  }
+  /* v2: la seguridad social se paga por trimestres vencidos
+     (enero: oct-dic · abril: ene-mar · julio: abr-jun · octubre: jul-sep). */
+  if ((st.version || 1) < 2) {
+    const ss = (st.obligaciones || []).find(o => o.id === 'ss');
+    if (ss) ss.frecuencia = 'trimestral';
+    st.version = 2;
   }
   return st;
 }
@@ -176,6 +186,9 @@ function computeItems(st, now = new Date(), horizonte = 1) {
   return items;
 }
 
+/* Un % que sale en 0 (no se pasa del mínimo exento) no hay que pagarlo: no se muestra ni avisa. */
+const esCero = it => it.ob.tipo === 'porcentaje' && it.amount === 0;
+
 function textoEstado(it) {
   const d = it.daysLeft;
   if (d < 0) return 'Vencido hace ' + (-d) + (d === -1 ? ' día' : ' días');
@@ -190,7 +203,7 @@ function recordatorios(items, now = new Date()) {
   const out = [];
   const hoyStr = ymd(now);
   for (const it of items) {
-    if (it.pago) continue;           // ya pagado: no avisa
+    if (it.pago || esCero(it)) continue;   // ya pagado o monto 0: no avisa
     const d = it.daysLeft;
     if (d > 2) continue;
     const base = it.key + '|' + ymd(it.due);

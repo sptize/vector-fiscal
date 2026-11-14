@@ -1,11 +1,11 @@
 'use strict';
 importScripts('core.js');
 
-const CACHE = 'vector-fiscal-v5';
+const CACHE = 'vector-fiscal-' + APP_VERSION;
 const ARCHIVOS = ['./', 'index.html', 'styles.css', 'core.js', 'app.js', 'manifest.webmanifest', 'icon-192.png', 'icon-512.png'];
 
 self.addEventListener('install', e => {
-  e.waitUntil(caches.open(CACHE).then(c => c.addAll(ARCHIVOS)).then(() => self.skipWaiting()));
+  e.waitUntil(caches.open(CACHE).then(c => c.addAll(ARCHIVOS.map(u => new Request(u, { cache: 'reload' })))).then(() => self.skipWaiting()));
 });
 
 self.addEventListener('activate', e => {
@@ -18,6 +18,7 @@ self.addEventListener('activate', e => {
 
 self.addEventListener('fetch', e => {
   if (e.request.method !== 'GET') return;
+  if (new URL(e.request.url).searchParams.has('nc')) return;   // consulta de versión: directo a la red
   e.respondWith(
     caches.match(e.request).then(hit => hit || fetch(e.request).then(res => {
       if (res.ok && new URL(e.request.url).origin === location.origin) {
@@ -39,6 +40,7 @@ self.addEventListener('periodicsync', e => {
   if (e.tag === 'revisar-pagos') e.waitUntil(revisar());
 });
 self.addEventListener('message', e => {
+  if (e.data === 'saltar') self.skipWaiting();
   if (e.data === 'revisar') e.waitUntil(revisar());
 });
 
